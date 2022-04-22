@@ -4,14 +4,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=0.35, maximum-scale=0.35,minimum-scale=0.35">
     <title>Go風呂</title>
-    <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">  </head>
   <body>
     <div class="container-fluid mt-5 pt-5">
       <div class="row justify-content-md-center">
         <div class="col col-lg-8">
           <div class="d-grid gap-8">
-            <button class="btn btn-primary" type="button">風呂Go</button>
+            <button class="btn btn-primary" type="button" onclick="onUIClickGoFuro(this)">風呂Go</button>
           </div>
         </div>
       </div>      
@@ -29,7 +29,7 @@
               <label class="form-check-label" >1</label>
             </div>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio"  name="gpio_port" value="2">
+              <input class="form-check-input" type="radio" name="gpio_port" value="2">
               <label class="form-check-label" >2</label>
             </div>
             <div class="form-check form-check-inline">
@@ -47,21 +47,26 @@
     <script src="https://cdn.jsdelivr.net/npm/mqtt@4.3.4/dist/mqtt.min.js" integrity="sha256-kwTnrzz0cOUvq4QlNUqWXv0j1Mly0Qh+RaveDfQQEI0=" crossorigin="anonymous"></script>
     <script>
       window.addEventListener('load', (evt) => {
+        tryCreateEd25519Key();
         onCreateMqttConnection();
       });
-      const mqtturl = 'wss://broker.emqx.io/mqtt';
+      const mqtturl = 'wss://broker.emqx.io:8084/mqtt';
       let gMqttClient = false;
       console.log('::mqtturl:=<', mqtturl, '>');
+      const clientID = 'mqttjs_' + Base58.encode(nacl.randomBytes(32))
+      console.log('::clientID:=<', clientID, '>');
       const onCreateMqttConnection = () => {
         const options = {
-          connectTimeout: 4000,
+          protocolId: 'MQTT',
+          connectTimeout: 30 * 1000,
+          clean: true,
+          reconnectPeriod: 1000,
           // Authentication
-          clientId: ``,
+          clientId: clientID,
           username: '',
           password: '',
-          keepalive: 60*5,
+          keepalive: 60,
           clean: true,
-          rejectUnauthorized: false
         }
         gMqttClient = mqtt.connect(mqtturl,options);
         console.log('onCreateMqttConnection::gMqttClient.connected:=<', gMqttClient.connected, '>');
@@ -69,7 +74,68 @@
           console.log('onCreateMqttConnection::gMqttClient.connected:=<', gMqttClient.connected, '>');
         });
       }
+      
+      const secretEdKeyPath = 'gofuro/v2/ed25519/secret';
+      const tryCreateEd25519Key = () => {
+        const secretKey = localStorage.getItem(secretEdKeyPath);
+        if(secretKey) {
+          loadEd25519Key(secretKey);
+        } else {
+          const keyPair = nacl.sign.keyPair();
+          console.log('tryCreateEd25519Key::keyPair:=<', keyPair, '>');
+          const secretKey = nacl.util.encodeBase64(keyPair.secretKey);
+          console.log('tryCreateEd25519Key::secretKey:=<', secretKey, '>');
+          localStorage.setItem(secretEdKeyPath,secretKey);
+          loadEd25519Key(secretKey);
+        }
+      }
+      let secretKeyBin = false;
+      let publicKeyB64 = false;
+      let publicKeyB58 = false;
+      const loadEd25519Key = (secretKey)=> {
+        console.log('loadEd25519Key::secretKey:=<', secretKey, '>');
+        secretKeyBin = nacl.util.decodeBase64(secretKey);
+        console.log('loadEd25519Key::secretKeyBin:=<', secretKeyBin, '>');
+        const keyPair = nacl.sign.keyPair.fromSecretKey(secretKeyBin);
+        console.log('loadEd25519Key::keyPair:=<', keyPair, '>');
+        publicKeyB64 = nacl.util.encodeBase64(keyPair.publicKey);
+        console.log('loadEd25519Key::publicKeyB64:=<', publicKeyB64, '>');
+        publicKeyB58 = Base58.encode(keyPair.publicKey);
+        console.log('loadEd25519Key::publicKeyB58:=<', publicKeyB58, '>');
+      }
+      const onUIClickGoFuro = (elem) => {
+        console.log('onUIClickGoFuro::elem:=<', elem, '>');
+        const radios = document.getElementsByName('gpio_port');
+        for(const radio of radios) {
+          console.log('onUIClickGoFuro::radio:=<', radio, '>');
+          if (radio.checked) {
+            publishGpio(parseInt(radio.value));
+            break;
+          }
+        }
+      }
+      const publishGpio = (gpio) => {
+        console.log('publishGpio::gpio:=<', gpio, '>');
+        const msg = {
+          gpio:gpio
+        };
+        const signedMsg = signByEd25519(msg);
+        console.log('publishGpio::signedMsg:=<', signedMsg, '>');
+      }
+      const signByEd25519 = (msg) => {
+        msg.iss = (new Date()).toISOString();
+        const msgHash = CryptoJS.SHA256(JSON.stringify(msg)).toString(
+          CryptoJS.enc.Base64
+        );
+        const signedMsg = {};
+        signedMsg.payload = msg;
+        const msgHashBin = nacl.util.decodeBase64(msgHash);
+        const signedHash = nacl.sign(msgHashBin, secretKeyBin);
+        signedMsg.auth = {};
+        signedMsg.auth.pub = publicKeyB64;
+        signedMsg.auth.sign = nacl.util.encodeBase64(signedHash);
+        return signedMsg;
+      }
     </script>
   </body>
 </html>
-
