@@ -72,7 +72,7 @@
           clientId: clientID,
           username: '',
           password: '',
-          keepalive: 60,
+          keepalive: 30*1000,
           clean: true,
         }
         gMqttClient = mqtt.connect(mqtturl,options);
@@ -146,6 +146,8 @@
         };
         const signedMsg = signByEd25519(msg);
         console.log('publishGpio::signedMsg:=<', signedMsg, '>');
+        console.log('publishGpio::gMqttClient.connected:=<', gMqttClient.connected, '>');
+        gMqttClient.publish(publicKeyB64,JSON.stringify(signedMsg));
       }
       const signByEd25519 = (msg) => {
         msg.iss = (new Date()).toISOString();
