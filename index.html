@@ -11,12 +11,19 @@
       <div class="row justify-content-md-center">
         <div class="col col-lg-8">
           <div class="d-grid gap-8">
-            <button class="btn btn-primary" type="button" onclick="onUIClickGoFuro(this)">風呂Go</button>
+            <button class="btn btn-primary" type="button" id="ui-gofuro-btn" disabled onclick="onUIClickGoFuro(this)">風呂Go</button>
           </div>
         </div>
       </div>      
     </div>
+    <hr/>
     <div class="container-fluid fixed-bottom">
+      <div class="row justify-content-md-center">
+          <div class="col col-lg-8">
+            <h3>下記の公開鍵文字列をESP32シリアルにコピーして設定してください。</h3>
+            <h5 id="ui-gofuro-public-key"></h5>
+        </div>
+      </div>
       <div class="row justify-content-md-center">
           <div class="col col-lg-8">
             <h1>デバッグ、制御ポート選択</h1>
@@ -72,6 +79,19 @@
         console.log('onCreateMqttConnection::gMqttClient.connected:=<', gMqttClient.connected, '>');
         gMqttClient.on('connect', () => {
           console.log('onCreateMqttConnection::gMqttClient.connected:=<', gMqttClient.connected, '>');
+          const btn = document.getElementById('ui-gofuro-btn');
+          console.log('onCreateMqttConnection::btn:=<', btn, '>');
+          btn.disabled = false;
+        });
+        gMqttClient.on('disconnect', () => {
+          const btn = document.getElementById('ui-gofuro-btn');
+          console.log('onCreateMqttConnection::btn:=<', btn, '>');
+          btn.disabled = true;
+        });
+        gMqttClient.on('error', () => {
+          const btn = document.getElementById('ui-gofuro-btn');
+          console.log('onCreateMqttConnection::btn:=<', btn, '>');
+          btn.disabled = true;
         });
       }
       
@@ -102,6 +122,11 @@
         console.log('loadEd25519Key::publicKeyB64:=<', publicKeyB64, '>');
         publicKeyB58 = Base58.encode(keyPair.publicKey);
         console.log('loadEd25519Key::publicKeyB58:=<', publicKeyB58, '>');
+
+        const keyElem = document.getElementById('ui-gofuro-public-key');
+        console.log('onCreateMqttConnection::keyElem:=<', keyElem, '>');
+        keyElem.textContent = 'addAuthedkey:<' + publicKeyB64 + '>';
+
       }
       const onUIClickGoFuro = (elem) => {
         console.log('onUIClickGoFuro::elem:=<', elem, '>');
