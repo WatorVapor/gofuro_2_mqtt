@@ -27,6 +27,7 @@ const onCreateMqttConnection = () => {
     const btn = document.getElementById('ui-gofuro-btn');
     console.log('onCreateMqttConnection::btn:=<', btn, '>');
     btn.disabled = false;
+    gMqttClient.subscribe(publicKeyB64,{qos:1} );
   });
   gMqttClient.on('disconnect', () => {
     const btn = document.getElementById('ui-gofuro-btn');
@@ -37,6 +38,10 @@ const onCreateMqttConnection = () => {
     const btn = document.getElementById('ui-gofuro-btn');
     console.log('onCreateMqttConnection::btn:=<', btn, '>');
     btn.disabled = true;
+  });
+  gMqttClient.on('message', (topic, message) => {
+    console.log('onCreateMqttConnection::on message topic:=<', topic, '>');    
+    console.log('onCreateMqttConnection::on message message:=<', message, '>');    
   });
 }
 
