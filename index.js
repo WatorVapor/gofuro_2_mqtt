@@ -156,6 +156,7 @@ const signByEd25519 = (msg) => {
   const msgHashBin = nacl.util.decodeBase64(msgHash);
   const signedHash = nacl.sign(msgHashBin, secretKeyBin);
   signedMsg.auth = {};
+  signedMsg.auth.sha = msgHash;
   signedMsg.auth.pub = publicKeyB64;
   signedMsg.auth.sign = nacl.util.encodeBase64(signedHash);
   return signedMsg;
