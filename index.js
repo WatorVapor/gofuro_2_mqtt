@@ -148,15 +148,17 @@ const publishMsgStepByStep = ()=> {
 
 const signByEd25519 = (msg) => {
   msg.iss = (new Date()).toISOString();
-  const msgHash = CryptoJS.SHA256(JSON.stringify(msg)).toString(
-    CryptoJS.enc.Base64
-  );
+  const payloadStr = JSON.stringify(msg);
+
+  const encoder = new TextEncoder();
+  const msgHashBin = nacl.hash(encoder.encode(payloadStr));
+  console.log('signByEd25519::msgHashBin:=<', msgHashBin, '>');
+  
   const signedMsg = {};
   signedMsg.payload = msg;
-  const msgHashBin = nacl.util.decodeBase64(msgHash);
   const signedHash = nacl.sign(msgHashBin, secretKeyBin);
   signedMsg.auth = {};
-  signedMsg.auth.sha = msgHash;
+  signedMsg.auth.sha = nacl.util.encodeBase64(msgHashBin);
   signedMsg.auth.pub = publicKeyB64;
   signedMsg.auth.sign = nacl.util.encodeBase64(signedHash);
   return signedMsg;
