@@ -89,6 +89,8 @@ const onUIClickGoFuro = (elem) => {
     }
   }
 }
+
+
 const publishGpio = (gpio) => {
   console.log('publishGpio::gpio:=<', gpio, '>');
   const msg = {
@@ -98,9 +100,26 @@ const publishGpio = (gpio) => {
   console.log('publishGpio::signedMsg:=<', signedMsg, '>');
   console.log('publishGpio::publicKeyB64:=<', publicKeyB64, '>');
   console.log('publishGpio::gMqttClient.connected:=<', gMqttClient.connected, '>');
-  gMqttClient.publish(publicKeyB64,JSON.stringify(signedMsg));
-  gMqttClient.publish(publicKeyB64,'1111');
+  const allMsg = JSON.stringify(signedMsg);
+  console.log('publishGpio::allMsg:=<', allMsg, '>');
+  console.log('publishGpio::allMsg.length:=<', allMsg.length, '>');
+  publishMqttMsg(allMsg);
 }
+
+const BUFFER_MAX_SIZE = 80;
+const publishMqttMsg = (allMsg) => {
+  for(let start = 0;start < allMsg.length;start += BUFFER_MAX_SIZE) {
+    const end = start + BUFFER_MAX_SIZE;
+    if(end > allMsg.length) {
+      const sendBuffer = allMsg.substring(start);
+      gMqttClient.publish(publicKeyB64,sendBuff);
+    } else {
+      const sendBuffer = allMsg.substring(start,end);
+      gMqttClient.publish(publicKeyB64,sendBuff);      
+    }
+  }  
+}
+
 const signByEd25519 = (msg) => {
   msg.iss = (new Date()).toISOString();
   const msgHash = CryptoJS.SHA256(JSON.stringify(msg)).toString(
