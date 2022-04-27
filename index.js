@@ -131,7 +131,7 @@ const publishMqttMsg = (allMsg) => {
   }
   setTimeout(()=>{
     publishMsgStepByStep();
-  },1000);
+  },100);
 }
 const publishMsgStepByStep = ()=> {
   if(gSendBufferOfMqtt.length > 0) {
@@ -142,7 +142,7 @@ const publishMsgStepByStep = ()=> {
     gSendBufferOfMqtt.shift();
     setTimeout(()=>{
       publishMsgStepByStep();
-    },1000);    
+    },100);    
   }
 }
 
