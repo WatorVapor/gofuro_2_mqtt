@@ -1,9 +1,13 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
-#include "debug.hpp"
-
+#include <map>
 #include <PubSubClient.h>
+#include <Ed25519.h>
+#include <SHA256.h>
+#include <base64.hpp>
+
+#include "debug.hpp"
 
 static const char* ssid = "mayingkuiG";
 static const char* password = "xuanxuanhaohao";
@@ -11,11 +15,118 @@ static const char* mqtt_server = "broker.emqx.io";
 static WiFiClient espClient;
 static PubSubClient client(espClient);
 
+static StaticJsonDocument<1024> gMattMsgDoc;
+
+
+static unsigned char gBase64TempBinary[512];
+
+static uint8_t gPublicKeyBinary[32];
+static uint8_t gSignBinary[64];
+
+static bool verifySign(const std::string &pub,const std::string &sign,const std::string &msg){
+  LOG_S(pub);
+  LOG_S(sign);
+  int pubRet = decode_base64((unsigned char*)pub.c_str(),pub.size(),gBase64TempBinary);
+  LOG_I(pubRet);
+  memcpy(gPublicKeyBinary,gBase64TempBinary,sizeof(gPublicKeyBinary));
+  LOG_H(gPublicKeyBinary,sizeof(gPublicKeyBinary));
+  int signRet = decode_base64((unsigned char*)sign.c_str(),sign.size(),gBase64TempBinary);
+  LOG_I(signRet);
+  memcpy(gSignBinary,gBase64TempBinary,sizeof(gSignBinary));
+  LOG_H(gSignBinary,sizeof(gSignBinary));
+  auto goodMsg = Ed25519::verify(gSignBinary,gPublicKeyBinary,msg.c_str(),msg.size());
+  LOG_I(goodMsg);
+  return goodMsg;
+}
+bool checkAuth(const JsonVariant &msg,const std::string &topic) {
+  std::string pubStr;
+  std::string signStr;
+  std::string shaStr;
+  if(msg.containsKey("pub")){
+    pubStr = msg["pub"].as<std::string>();
+    LOG_S(pubStr);
+  }
+  if(msg.containsKey("sign")){
+    signStr = msg["sign"].as<std::string>();
+    LOG_S(signStr);
+  }
+  if(msg.containsKey("sha")){
+    shaStr = msg["sha"].as<std::string>();
+    LOG_S(shaStr);
+  }
+  if(pubStr.empty() == false && signStr.empty() == false && shaStr.empty() == false) {
+    return verifySign(pubStr,signStr,shaStr);
+  }
+  return false;
+}
+void onMqttAuthedMsg(const JsonVariant &msg) {
+
+}
+
+void execMqttMsg(const std::string &msg,const std::string &topic) {
+  LOG_S(msg);
+  LOG_S(topic);
+  DeserializationError error = deserializeJson(gMattMsgDoc, msg);
+  LOG_S(error);
+  if(error == DeserializationError::Ok) {
+    if(gMattMsgDoc.containsKey("auth")) {
+      JsonVariant auth = gMattMsgDoc["auth"];
+      bool isGood = checkAuth(auth,topic);
+      if(isGood) {
+        if(gMattMsgDoc.containsKey("payload")) {
+          JsonVariant payload = gMattMsgDoc["payload"];
+          onMqttAuthedMsg(payload);
+        }
+      }
+    }
+  }
+}
+
+static std::map<std::string,std::string> gChannelTempMsg;
+
+void insertTopicMsg(const std::string &msg,const std::string &topic){
+    auto ir = gChannelTempMsg.find(topic);
+    if(ir == gChannelTempMsg.end()) {
+      gChannelTempMsg[topic] = msg;
+    } else {
+      ir->second += msg;
+    }
+}
+void processOneMqttMsg(const std::string &topic){
+    auto ir = gChannelTempMsg.find(topic);
+    if(ir != gChannelTempMsg.end()) {
+      execMqttMsg(ir->second,ir->first);
+      gChannelTempMsg.erase(ir);
+    }
+}
+
+
+void onMqttMsg(StaticJsonDocument<256> &doc,const std::string &topic ){
+  if(doc.containsKey("buff")) {
+    std::string buffStr = doc["buff"].as<std::string>();
+    LOG_S(buffStr);
+    if(doc.containsKey("finnish")) {
+      bool finnish = doc["finnish"].as<bool>();
+      insertTopicMsg(buffStr,topic);
+      if(finnish) {
+        processOneMqttMsg(topic);
+      }
+    }
+  }
+
+}
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  LOG_SC(topic);
+  std::string topicStr(topic);
+  LOG_S(topicStr);
   std::string payloadStr((char*)payload,length);
   LOG_S(payloadStr);
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, payloadStr);
+  LOG_S(error);
+  if(error == DeserializationError::Ok) {
+    onMqttMsg(doc,topicStr);
+  }
 }
 
 
