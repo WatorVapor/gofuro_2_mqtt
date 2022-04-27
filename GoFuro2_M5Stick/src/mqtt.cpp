@@ -47,14 +47,15 @@ static bool verifySign(const std::string &pub,const std::string &sign,const std:
   
   unsigned long long mSize = 0;
   unsigned long long signSize = signRet;
-  int openRet = crypto_sign_ed25519_tweet_open(gOpenedTempMsg,&mSize,gSignBinary,signSize,gPublicKeyBinary);
-  LOG_I(openRet);
-  LOG_I(mSize);
-/*  
-  auto goodMsg = Ed25519::verify(gSignBinary,gPublicKeyBinary,sha.c_str(),sha.size());
-  LOG_I(goodMsg);
-  return goodMsg;
-*/
+  int openRet = crypto_sign_open(gOpenedTempMsg,&mSize,gSignBinary,signSize,gPublicKeyBinary);
+  if(openRet == 0){
+    int shaRet = encode_base64(gOpenedTempMsg,signRet,gBase64TempBinary);
+    std::string shaOpened((char*)gBase64TempBinary,shaRet);
+    LOG_S(shaOpened);
+    LOG_I(shaRet);
+    LOG_I(sha.size());
+    LOG_LL(mSize);
+  }
   return false;
 }
 bool checkAuth(const JsonVariant &msg,const std::string &topic) {
@@ -132,7 +133,6 @@ void onMqttMsg(StaticJsonDocument<256> &doc,const std::string &topic ){
       }
     }
   }
-
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {

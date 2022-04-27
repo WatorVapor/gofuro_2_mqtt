@@ -20,6 +20,9 @@
 #define LOG_I(x) { \
   Serial.printf("[log] %s::%d:%s=<%d>\r\n",__func__,__LINE__,#x,x);\
 }
+#define LOG_LL(x) { \
+  Serial.printf("[log] %s::%d:%s=<%ld>\r\n",__func__,__LINE__,#x,x);\
+}
 #define LOG_F(x) { \
   Serial.printf("[log] %s::%d:%s=<%f>\r\n",__func__,__LINE__,#x,x);\
 }
