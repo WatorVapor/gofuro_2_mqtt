@@ -116,14 +116,20 @@ const publishMqttMsg = (allMsg) => {
         buff:sendBuffer,
         finnish:true
       };
-      gMqttClient.publish(publicKeyB64,JSON.stringify(sendMsg));
+      const oneBuffer = JSON.stringify(sendMsg);
+      console.log('publishMqttMsg::oneBuffer:=<', oneBuffer, '>');
+      console.log('publishMqttMsg::oneBuffer.length:=<', oneBuffer.length, '>');
+      gMqttClient.publish(publicKeyB64,oneBuffer);
     } else {
       const sendBuffer = allMsg.substring(start,end);
       const sendMsg = {
         buff:sendBuffer,
         finnish:false
       };
-      gMqttClient.publish(publicKeyB64,JSON.stringify(sendMsg));
+      const oneBuffer = JSON.stringify(sendMsg);
+      console.log('publishMqttMsg::oneBuffer:=<', oneBuffer, '>');
+      console.log('publishMqttMsg::oneBuffer.length:=<', oneBuffer.length, '>');
+      gMqttClient.publish(publicKeyB64,oneBuffer);
     }
   }  
 }
