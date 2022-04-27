@@ -96,6 +96,7 @@ const publishGpio = (gpio) => {
   };
   const signedMsg = signByEd25519(msg);
   console.log('publishGpio::signedMsg:=<', signedMsg, '>');
+  console.log('publishGpio::publicKeyB64:=<', publicKeyB64, '>');
   console.log('publishGpio::gMqttClient.connected:=<', gMqttClient.connected, '>');
   gMqttClient.publish(publicKeyB64,JSON.stringify(signedMsg));
 }
