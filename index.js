@@ -112,10 +112,18 @@ const publishMqttMsg = (allMsg) => {
     const end = start + BUFFER_MAX_SIZE;
     if(end > allMsg.length) {
       const sendBuffer = allMsg.substring(start);
-      gMqttClient.publish(publicKeyB64,sendBuffer);
+      const sendMsg = {
+        buff:sendBuffer,
+        finnish:true
+      };
+      gMqttClient.publish(publicKeyB64,JSON.stringify(sendMsg));
     } else {
       const sendBuffer = allMsg.substring(start,end);
-      gMqttClient.publish(publicKeyB64,sendBuffer);      
+      const sendMsg = {
+        buff:sendBuffer,
+        finnish:false
+      };
+      gMqttClient.publish(publicKeyB64,JSON.stringify(sendMsg));
     }
   }  
 }
