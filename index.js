@@ -108,6 +108,7 @@ const publishGpio = (gpio) => {
 
 const BUFFER_MAX_SIZE = 64;
 const gSendBufferOfMqtt = [];
+const MQTT_SEND_INTERVAL = 1000;
 const publishMqttMsg = (allMsg) => {
   for(let start = 0;start < allMsg.length;start += BUFFER_MAX_SIZE) {
     const end = start + BUFFER_MAX_SIZE;
@@ -131,7 +132,7 @@ const publishMqttMsg = (allMsg) => {
   }
   setTimeout(()=>{
     publishMsgStepByStep();
-  },100);
+  },MQTT_SEND_INTERVAL);
 }
 const publishMsgStepByStep = ()=> {
   if(gSendBufferOfMqtt.length > 0) {
@@ -142,7 +143,7 @@ const publishMsgStepByStep = ()=> {
     gSendBufferOfMqtt.shift();
     setTimeout(()=>{
       publishMsgStepByStep();
-    },100);    
+    },MQTT_SEND_INTERVAL);    
   }
 }
 
