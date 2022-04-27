@@ -112,10 +112,10 @@ const publishMqttMsg = (allMsg) => {
     const end = start + BUFFER_MAX_SIZE;
     if(end > allMsg.length) {
       const sendBuffer = allMsg.substring(start);
-      gMqttClient.publish(publicKeyB64,sendBuff);
+      gMqttClient.publish(publicKeyB64,sendBuffer);
     } else {
       const sendBuffer = allMsg.substring(start,end);
-      gMqttClient.publish(publicKeyB64,sendBuff);      
+      gMqttClient.publish(publicKeyB64,sendBuffer);      
     }
   }  
 }
