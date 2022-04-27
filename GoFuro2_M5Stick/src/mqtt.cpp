@@ -3,9 +3,17 @@
 #include <ArduinoJson.h>
 #include <map>
 #include <PubSubClient.h>
+
+/*
 #include <Ed25519.h>
 #include <SHA256.h>
+*/
+
 #include <base64.hpp>
+extern "C" {
+  #include <tweetnacl.h>
+  //extern int crypto_sign_open(unsigned char *,unsigned long long *,const unsigned char *,unsigned long long,const unsigned char *);
+}
 
 #include "debug.hpp"
 
@@ -19,24 +27,35 @@ static StaticJsonDocument<1024> gMattMsgDoc;
 
 
 static unsigned char gBase64TempBinary[512];
+static unsigned char gOpenedTempMsg[512];
 
+static uint8_t gSignBinary[512];
 static uint8_t gPublicKeyBinary[32];
-static uint8_t gSignBinary[64];
 
-static bool verifySign(const std::string &pub,const std::string &sign,const std::string &msg){
+static bool verifySign(const std::string &pub,const std::string &sign,const std::string &sha){
   LOG_S(pub);
   LOG_S(sign);
+  LOG_S(sha);
   int pubRet = decode_base64((unsigned char*)pub.c_str(),pub.size(),gBase64TempBinary);
   LOG_I(pubRet);
   memcpy(gPublicKeyBinary,gBase64TempBinary,sizeof(gPublicKeyBinary));
   LOG_H(gPublicKeyBinary,sizeof(gPublicKeyBinary));
   int signRet = decode_base64((unsigned char*)sign.c_str(),sign.size(),gBase64TempBinary);
   LOG_I(signRet);
-  memcpy(gSignBinary,gBase64TempBinary,sizeof(gSignBinary));
-  LOG_H(gSignBinary,sizeof(gSignBinary));
-  auto goodMsg = Ed25519::verify(gSignBinary,gPublicKeyBinary,msg.c_str(),msg.size());
+  memcpy(gSignBinary,gBase64TempBinary,signRet);
+  LOG_H(gSignBinary,signRet);
+  
+  unsigned long long mSize = 0;
+  unsigned long long signSize = signRet;
+  int openRet = crypto_sign_ed25519_tweet_open(gOpenedTempMsg,&mSize,gSignBinary,signSize,gPublicKeyBinary);
+  LOG_I(openRet);
+  LOG_I(mSize);
+/*  
+  auto goodMsg = Ed25519::verify(gSignBinary,gPublicKeyBinary,sha.c_str(),sha.size());
   LOG_I(goodMsg);
   return goodMsg;
+*/
+  return false;
 }
 bool checkAuth(const JsonVariant &msg,const std::string &topic) {
   std::string pubStr;

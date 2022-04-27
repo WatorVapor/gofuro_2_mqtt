@@ -32,7 +32,7 @@
 #define LOG_H(x,y) { \
   Serial.printf("[log] %s::%d:%s=<",__func__,__LINE__,#x);\
   for(int i = 0;i < y;i++) {\
-    Serial.printf("%02x,",x[y]);\
+    Serial.printf("%02x,",x[i]);\
   }\
   Serial.printf(">\r\n");\
 }
