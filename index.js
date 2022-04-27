@@ -107,6 +107,7 @@ const publishGpio = (gpio) => {
 }
 
 const BUFFER_MAX_SIZE = 64;
+const gSendBufferOfMqtt = [];
 const publishMqttMsg = (allMsg) => {
   for(let start = 0;start < allMsg.length;start += BUFFER_MAX_SIZE) {
     const end = start + BUFFER_MAX_SIZE;
@@ -117,9 +118,7 @@ const publishMqttMsg = (allMsg) => {
         finnish:true
       };
       const oneBuffer = JSON.stringify(sendMsg);
-      console.log('publishMqttMsg::oneBuffer:=<', oneBuffer, '>');
-      console.log('publishMqttMsg::oneBuffer.length:=<', oneBuffer.length, '>');
-      gMqttClient.publish(publicKeyB64,oneBuffer);
+      gSendBufferOfMqtt.push(oneBuffer);
     } else {
       const sendBuffer = allMsg.substring(start,end);
       const sendMsg = {
@@ -127,11 +126,24 @@ const publishMqttMsg = (allMsg) => {
         finnish:false
       };
       const oneBuffer = JSON.stringify(sendMsg);
-      console.log('publishMqttMsg::oneBuffer:=<', oneBuffer, '>');
-      console.log('publishMqttMsg::oneBuffer.length:=<', oneBuffer.length, '>');
-      gMqttClient.publish(publicKeyB64,oneBuffer);
+      gSendBufferOfMqtt.push(oneBuffer);
     }
-  }  
+  }
+  setTimeout(()=>{
+    publishMsgStepByStep();
+  },1000);
+}
+const publishMsgStepByStep = ()=> {
+  if(gSendBufferOfMqtt.length > 0) {
+    const oneBuffer = gSendBufferOfMqtt[0];
+    console.log('publishMqttMsg::oneBuffer:=<', oneBuffer, '>');
+    console.log('publishMqttMsg::oneBuffer.length:=<', oneBuffer.length, '>');
+    gMqttClient.publish(publicKeyB64,oneBuffer,{qos:1});
+    gSendBufferOfMqtt.shift();
+    setTimeout(()=>{
+      publishMsgStepByStep();
+    },1000);    
+  }
 }
 
 const signByEd25519 = (msg) => {
