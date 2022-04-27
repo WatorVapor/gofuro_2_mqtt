@@ -106,7 +106,7 @@ const publishGpio = (gpio) => {
   publishMqttMsg(allMsg);
 }
 
-const BUFFER_MAX_SIZE = 80;
+const BUFFER_MAX_SIZE = 64;
 const publishMqttMsg = (allMsg) => {
   for(let start = 0;start < allMsg.length;start += BUFFER_MAX_SIZE) {
     const end = start + BUFFER_MAX_SIZE;
