@@ -41,7 +41,7 @@ const onCreateMqttConnection = () => {
   });
   gMqttClient.on('message', (topic, message) => {
     console.log('onCreateMqttConnection::on message topic:=<', topic, '>');    
-    console.log('onCreateMqttConnection::on message message:=<', message, '>');    
+    console.log('onCreateMqttConnection::on message message:=<', message.toString('utf-8'), '>');    
   });
 }
 
