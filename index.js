@@ -94,7 +94,10 @@ const onUIClickGoFuro = (elem) => {
 const publishGpio = (gpio) => {
   console.log('publishGpio::gpio:=<', gpio, '>');
   const msg = {
-    gpio:gpio
+    d_out:{
+      port:gpio,
+      level:true
+    }
   };
   const signedMsg = signByEd25519(msg);
   console.log('publishGpio::signedMsg:=<', signedMsg, '>');
