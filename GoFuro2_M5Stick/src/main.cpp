@@ -4,12 +4,14 @@
 
 
 void BLETask( void * parameter);
+void MQTTTask( void * parameter);
 void setup() {
   Serial.begin(115200);
-  delay(3000);
+  Serial.println("gofuro start");
   auto freqDefault = getCpuFrequencyMhz();
   LOG_I(freqDefault);
   xTaskCreatePinnedToCore(BLETask, "BLETask", 10000, nullptr, 1, nullptr,  1); 
+  xTaskCreatePinnedToCore(MQTTTask, "MQTTTask", 10000, nullptr, 1, nullptr,  1); 
 }
 
 
@@ -20,7 +22,7 @@ void loop() {
     restart = true;
   }
   if(restart) {
-    Serial.println("restart ...");
+    Serial.println("reboot ...");
     delay(1000);
     esp_restart();
   }

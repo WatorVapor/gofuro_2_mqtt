@@ -103,7 +103,7 @@ void setupBLE(void) {
   pService->start();
   pServer->getAdvertising()->start();
 
-  Serial.println("Waiting a client connection to notify...");
+  Serial.println("Waiting a ble client connection ...");
 }
 
 std::string my_to_string(int i) {

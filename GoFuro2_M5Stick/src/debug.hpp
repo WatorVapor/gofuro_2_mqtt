@@ -26,8 +26,12 @@
 #define LOG_S(x) { \
   Serial.printf("[log] %s::%d:%s=<%s>\r\n",__func__,__LINE__,#x,x.c_str());\
 }
+#define LOG_SC(x) { \
+  Serial.printf("[log] %s::%d:%s=<%s>\r\n",__func__,__LINE__,#x,x);\
+}
 #else
 #define LOG_I(x) {}
 #define LOG_F(x) {}
 #define LOG_S(x) {}
+#define LOG_SC(x) {}
 #endif
