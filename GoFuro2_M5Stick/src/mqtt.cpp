@@ -31,72 +31,97 @@ static unsigned char gOpenedTempMsg[512];
 
 static uint8_t gSignBinary[512];
 static uint8_t gPublicKeyBinary[32];
+static const int SHA512_HASH_BIN_MAX = 512/8;
+static unsigned char gCalcTempHash[SHA512_HASH_BIN_MAX];
+
 
 static bool verifySign(const std::string &pub,const std::string &sign,const std::string &sha){
-  LOG_S(pub);
-  LOG_S(sign);
-  LOG_S(sha);
+  DUMP_S(pub);
+  DUMP_S(sign);
+  DUMP_S(sha);
   int pubRet = decode_base64((unsigned char*)pub.c_str(),pub.size(),gBase64TempBinary);
-  LOG_I(pubRet);
+  DUMP_I(pubRet);
   memcpy(gPublicKeyBinary,gBase64TempBinary,sizeof(gPublicKeyBinary));
-  LOG_H(gPublicKeyBinary,sizeof(gPublicKeyBinary));
+  DUMP_H(gPublicKeyBinary,sizeof(gPublicKeyBinary));
   int signRet = decode_base64((unsigned char*)sign.c_str(),sign.size(),gBase64TempBinary);
-  LOG_I(signRet);
+  DUMP_I(signRet);
   memcpy(gSignBinary,gBase64TempBinary,signRet);
-  LOG_H(gSignBinary,signRet);
+  DUMP_H(gSignBinary,signRet);
   
   unsigned long long mSize = 0;
   unsigned long long signSize = signRet;
   int openRet = crypto_sign_open(gOpenedTempMsg,&mSize,gSignBinary,signSize,gPublicKeyBinary);
   if(openRet == 0){
-    int shaRet = encode_base64(gOpenedTempMsg,signRet,gBase64TempBinary);
+    int shaRet = encode_base64(gOpenedTempMsg,SHA512_HASH_BIN_MAX,gBase64TempBinary);
     std::string shaOpened((char*)gBase64TempBinary,shaRet);
+    if(shaOpened ==sha) {
+      return true;
+    }
     LOG_S(shaOpened);
-    LOG_I(shaRet);
-    LOG_I(sha.size());
-    LOG_LL(mSize);
+    LOG_S(sha);
   }
   return false;
 }
-bool checkAuth(const JsonVariant &msg,const std::string &topic) {
+bool isAuthedMessage(const JsonVariant &msg,const std::string &topic,const std::string &payloadStr) {
+  auto hashRet = crypto_hash_sha512(gCalcTempHash,(unsigned char*)payloadStr.c_str(),payloadStr.size());
+  DUMP_I(hashRet);
+  int shaRet = encode_base64(gCalcTempHash,SHA512_HASH_BIN_MAX,gBase64TempBinary);
+  DUMP_I(shaRet);
+  std::string calHash((char*)gBase64TempBinary,shaRet);
+  DUMP_S(calHash);
+
   std::string pubStr;
   std::string signStr;
   std::string shaStr;
   if(msg.containsKey("pub")){
     pubStr = msg["pub"].as<std::string>();
-    LOG_S(pubStr);
+    DUMP_S(pubStr);
   }
   if(msg.containsKey("sign")){
     signStr = msg["sign"].as<std::string>();
-    LOG_S(signStr);
+    DUMP_S(signStr);
   }
   if(msg.containsKey("sha")){
     shaStr = msg["sha"].as<std::string>();
-    LOG_S(shaStr);
+    DUMP_S(shaStr);
+  }
+  if(shaStr != calHash) {
+    return false;
   }
   if(pubStr.empty() == false && signStr.empty() == false && shaStr.empty() == false) {
     return verifySign(pubStr,signStr,shaStr);
   }
   return false;
 }
-void onMqttAuthedMsg(const JsonVariant &msg) {
+void onMqttAuthedMsg(const JsonVariant &payload) {
+  if(payload.containsKey("d_out")) {
 
+  }
 }
 
 void execMqttMsg(const std::string &msg,const std::string &topic) {
   LOG_S(msg);
   LOG_S(topic);
   DeserializationError error = deserializeJson(gMattMsgDoc, msg);
-  LOG_S(error);
+  DUMP_S(error);
   if(error == DeserializationError::Ok) {
+    std::string payloadStr;
+    if(gMattMsgDoc.containsKey("payload")) {
+      payloadStr = gMattMsgDoc["payload"].as<std::string>();
+      DUMP_S(payloadStr);
+    }
+
     if(gMattMsgDoc.containsKey("auth")) {
       JsonVariant auth = gMattMsgDoc["auth"];
-      bool isGood = checkAuth(auth,topic);
+      bool isGood = isAuthedMessage(auth,topic,payloadStr);
       if(isGood) {
+        LOG_I(isGood);
         if(gMattMsgDoc.containsKey("payload")) {
           JsonVariant payload = gMattMsgDoc["payload"];
           onMqttAuthedMsg(payload);
         }
+      } else {
+        
       }
     }
   }
@@ -124,7 +149,7 @@ void processOneMqttMsg(const std::string &topic){
 void onMqttMsg(StaticJsonDocument<256> &doc,const std::string &topic ){
   if(doc.containsKey("buff")) {
     std::string buffStr = doc["buff"].as<std::string>();
-    LOG_S(buffStr);
+    DUMP_S(buffStr);
     if(doc.containsKey("finnish")) {
       bool finnish = doc["finnish"].as<bool>();
       insertTopicMsg(buffStr,topic);
@@ -137,12 +162,12 @@ void onMqttMsg(StaticJsonDocument<256> &doc,const std::string &topic ){
 
 void callback(char* topic, byte* payload, unsigned int length) {
   std::string topicStr(topic);
-  LOG_S(topicStr);
+  DUMP_S(topicStr);
   std::string payloadStr((char*)payload,length);
-  LOG_S(payloadStr);
+  DUMP_S(payloadStr);
   StaticJsonDocument<256> doc;
   DeserializationError error = deserializeJson(doc, payloadStr);
-  LOG_S(error);
+  DUMP_S(error);
   if(error == DeserializationError::Ok) {
     onMqttMsg(doc,topicStr);
   }
