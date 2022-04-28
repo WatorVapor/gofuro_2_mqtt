@@ -37,9 +37,9 @@
       </div>      
       <div class="row justify-content-md-center">
         <div class="col col-lg-8" id="vue-ui-gpio-port">
-          <div class="form-check form-check-inline" v-for="port in ports">
-            <input class="form-check-input" type="radio" name="gpio_port" :value="port.gpio" :checked="port.value">
-            <label class="form-check-label" >{{port.gpio}}</label>
+          <div class="form-check form-check-inline" v-for="port in gpio.ports">
+            <input class="form-check-input" type="radio" name="gpio_port" :value="port" :checked="port==gpio.selected" v-model="gpio.selected" @change="onChange($event)">
+            <label class="form-check-label" >{{port}}</label>
           </div>
         </div>
       </div>      

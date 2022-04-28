@@ -1,37 +1,47 @@
+const KEY_GPIO_SELECTION = 'gofuro2/gpio/selection';
+
 window.addEventListener('load', (evt) => {
   createApps();
 });
 
-let portVM = false;
-const KEY_GPIO_CHECK = 'gofuro2/gpio/selected';
-const DEFAULT_GPIO_CHECK_VALUE = [
-];
-for(let i = 1;i < 41;i++) {
-  if(i === 26) {
-    DEFAULT_GPIO_CHECK_VALUE.push({gpio:i,value:1});
-  } else {
-    DEFAULT_GPIO_CHECK_VALUE.push({gpio:i,value:0});    
+const gPortApp = {
+  gpio:{
+    selected:26,
+    ports:[]
+  }
+};
+const loadDefaultOfPortApp = () => {
+  for(let i = 1;i < 41;i++) {
+      gPortApp.gpio.ports.push(i);
   }
 }
 const createApps = () => {
-  const debugApp = Vue.createApp({
+  const gpioApp = Vue.createApp({
     data() {
-      let ports = [];
       try {
-        const lsGpioStr = localStorage.getItem(KEY_GPIO_CHECK);
+        const lsGpioStr = localStorage.getItem(KEY_GPIO_SELECTION);
+        console.log('createApps::lsGpioStr:=<', lsGpioStr, '>');
         if(lsGpioStr) {
-          ports = JSON.parse(lsGpioStr);
+          gPortApp.gpio = JSON.parse(lsGpioStr);
+        } else {
+          loadDefaultOfPortApp();
+          localStorage.setItem(KEY_GPIO_SELECTION,JSON.stringify(gPortApp.gpio));
         }
       } catch(err) {
-        ports = DEFAULT_GPIO_CHECK_VALUE;
-        localStorage.setItem(KEY_GPIO_CHECK,JSON.stringify(DEFAULT_GPIO_CHECK_VALUE));
+        loadDefaultOfPortApp();
+        localStorage.setItem(KEY_GPIO_SELECTION,JSON.stringify(gPortApp.gpio));
       }
       return {
-        ports:ports
+        gpio:gPortApp.gpio
       };
     },
     methods: {
+      onChange(evt) {
+        console.log('createApps::evt:=<', evt, '>');
+        localStorage.setItem(KEY_GPIO_SELECTION,JSON.stringify(this.gpio));
+      }
     }
   });
-  portVM = debugApp.mount('#vue-ui-gpio-port');
+  gPortApp.vm = gpioApp.mount('#vue-ui-gpio-port');
+  console.log('createApps::gPortApp:=<', gPortApp, '>');
 }
