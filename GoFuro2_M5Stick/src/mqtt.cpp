@@ -162,7 +162,7 @@ void onMqttMsg(StaticJsonDocument<256> &doc,const std::string &topic ){
 
 void callback(char* topic, byte* payload, unsigned int length) {
   std::string topicStr(topic);
-  DUMP_S(topicStr);
+  LOG_S(topicStr);
   std::string payloadStr((char*)payload,length);
   DUMP_S(payloadStr);
   StaticJsonDocument<256> doc;
@@ -192,7 +192,7 @@ void setupMQTT(void) {
 }
 
 
-static const char *defaultTopics = "PkvtzBcBSmk9OAKtiyiiRugO42zfCduTV2r8YIuBCbs=";
+static const char *defaultTopics = "u51h7JJd6054erGLKjVvOqa6hhfzC/xWbLYhPZN3S0M=";
 
 void reconnect() {
   // Loop until we're reconnected
