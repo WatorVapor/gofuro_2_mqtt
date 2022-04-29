@@ -121,7 +121,8 @@ void execMqttMsg(const std::string &msg,const std::string &topic) {
           onMqttAuthedMsg(payload);
         }
       } else {
-        
+        LOG_I(isGood);
+        LOG_S(msg);
       }
     }
   }
@@ -162,7 +163,7 @@ void onMqttMsg(StaticJsonDocument<256> &doc,const std::string &topic ){
 
 void callback(char* topic, byte* payload, unsigned int length) {
   std::string topicStr(topic);
-  LOG_S(topicStr);
+  DUMP_S(topicStr);
   std::string payloadStr((char*)payload,length);
   DUMP_S(payloadStr);
   StaticJsonDocument<256> doc;
