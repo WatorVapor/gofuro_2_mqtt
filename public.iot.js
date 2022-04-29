@@ -73,9 +73,9 @@ const loadEd25519Key = (secretKey)=> {
   publicKeyB58 = Base58.encode(keyPair.publicKey);
   console.log('loadEd25519Key::publicKeyB58:=<', publicKeyB58, '>');
 
-  const keyElem = document.getElementById('ui-gofuro-public-key');
+  const keyElem = document.getElementById('ui-public-key');
   console.log('onCreateMqttConnection::keyElem:=<', keyElem, '>');
-  keyElem.textContent = 'addAuthedkey:<' + publicKeyB64 + '>';
+  keyElem.textContent = publicKeyB64;
 
 }
 const publishGpio = (port,output) => {
