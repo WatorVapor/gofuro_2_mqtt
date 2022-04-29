@@ -154,3 +154,46 @@ const signByEd25519 = (msg) => {
   signedMsg.auth.sign = nacl.util.encodeBase64(signedHash);
   return signedMsg;
 }
+
+
+
+const signByEd25519BadTest = (msg) => {
+  msg.iss = (new Date()).toISOString();
+  const payloadStr = JSON.stringify(msg);
+
+  const encoder = new TextEncoder();
+  const msgHashBin = nacl.hash(encoder.encode(payloadStr));
+  console.log('signByEd25519BadTest::msgHashBin:=<', msgHashBin, '>');
+  
+  const signedMsg = {};
+  signedMsg.payload = msg;
+  
+  const keyPair = nacl.sign.keyPair();
+  
+  const signedHash = nacl.sign(msgHashBin, keyPair.secretKey);
+  signedMsg.auth = {};
+  signedMsg.auth.sha = nacl.util.encodeBase64(msgHashBin);
+  signedMsg.auth.pub = publicKeyB64;
+  signedMsg.auth.sign = nacl.util.encodeBase64(signedHash);
+  return signedMsg;
+}
+
+
+const publishGpioBadTest = (port,output) => {
+  console.log('publishGpioBadTest::port:=<', port, '>');
+  const msg = {
+    d_out:{
+      port:port,
+      level:output
+    }
+  };
+  const signedMsg = signByEd25519BadTest(msg);
+  console.log('publishGpioBadTest::signedMsg:=<', signedMsg, '>');
+  console.log('publishGpioBadTest::publicKeyB64:=<', publicKeyB64, '>');
+  console.log('publishGpioBadTest::gMqttClient.connected:=<', gMqttClient.connected, '>');
+  const allMsg = JSON.stringify(signedMsg);
+  console.log('publishGpioBadTest::allMsg:=<', allMsg, '>');
+  console.log('publishGpioBadTest::allMsg.length:=<', allMsg.length, '>');
+  publishMqttMsg(allMsg);
+}
+
