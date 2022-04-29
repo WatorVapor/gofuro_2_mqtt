@@ -93,15 +93,34 @@ bool isAuthedMessage(const JsonVariant &msg,const std::string &topic,const std::
   }
   return false;
 }
+
+void ExecGpio(int port,int level) {
+  LOG_I(port);
+  LOG_I(level);
+  pinMode(port,OUTPUT);
+  digitalWrite(port,level);
+}
+
+void onMqttDigitalOut(const JsonVariant &d_out) {
+  if(d_out.containsKey("port")) {
+    int port = d_out["port"].as<int>();
+    if(d_out.containsKey("level")) {
+      int level = d_out["level"].as<int>();
+      ExecGpio(port,level);
+    }
+  }
+}
+
+
 void onMqttAuthedMsg(const JsonVariant &payload) {
   if(payload.containsKey("d_out")) {
-
+    onMqttDigitalOut(payload["d_out"]);
   }
 }
 
 void execMqttMsg(const std::string &msg,const std::string &topic) {
-  LOG_S(msg);
-  LOG_S(topic);
+  DUMP_S(msg);
+  DUMP_S(topic);
   DeserializationError error = deserializeJson(gMattMsgDoc, msg);
   DUMP_S(error);
   if(error == DeserializationError::Ok) {
