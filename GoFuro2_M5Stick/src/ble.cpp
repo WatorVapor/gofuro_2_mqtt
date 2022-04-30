@@ -5,8 +5,10 @@
 #include <BLE2902.h>
 
 #include <ArduinoJson.h>
+#include <Preferences.h>
 
 #include <sstream>
+
 #include "debug.hpp"
 
 BLEServer *pServer = NULL;
@@ -26,43 +28,53 @@ class MyServerCallbacks: public BLEServerCallbacks {
     }
 };
 
+static StaticJsonDocument<1024> gAllowList;
+static StaticJsonDocument<1024> gDenyList;
+static Preferences preferences;
+static const char *preferencesZone = "public.iot.1";
+static const char *allowKey = "allows";
+static const char *denyKey = "denys";
+static String gTempAllowJsonBody;
+static String gTempDenyJsonBody;
+extern bool isPreferenceAllow;
+
+void savePref(const char * key,const String &value){
+  LOG_SC(key);
+  LOG_S(value);
+  int waitPressCounter = 10;
+  while(waitPressCounter -- > 0) {
+    if(isPreferenceAllow){
+      LOG_I(isPreferenceAllow);
+      preferences.putString(key,value);
+      isPreferenceAllow = false;
+      return;
+    }
+    delay(1000);
+  }
+}
+
 
 void onExternalCommand(StaticJsonDocument<256> &doc) {
-  if(doc.containsKey("forward")) {
-    auto forward = doc["forward"];
-    if(forward.containsKey("speed")) {
-      float speed = forward["speed"].as<float>();
-      LOG_F(speed);
+  preferences.begin(preferencesZone);
+  if(doc.containsKey("allow")) {
+    auto allow = doc["allow"];
+    if(!gAllowList.containsKey("allows")) {
+      gAllowList.createNestedArray("allows");
     }
+     gAllowList["allows"].add(allow);
+    serializeJson(gAllowList, gTempAllowJsonBody);
+    savePref(allowKey,gTempAllowJsonBody);
   }
-  if(doc.containsKey("backward")) {
-    auto backward = doc["backward"];
-    if(backward.containsKey("speed")) {
-      float speed = backward["speed"].as<float>();
-      LOG_F(speed);
+  if(doc.containsKey("deny")) {
+    auto deny = doc["deny"];
+    if(!gDenyList.containsKey("denys")) {
+      gDenyList.createNestedArray("denys");
     }
+    gDenyList["denys"].add(deny);
+    serializeJson(gDenyList, gTempDenyJsonBody);
+    savePref(denyKey,gTempDenyJsonBody);
   }
-  if(doc.containsKey("turn")) {
-    auto turn = doc["turn"];
-    if(turn.containsKey("angle")) {
-      float angle = turn["angle"].as<float>();
-      LOG_F(angle);
-    }
-  }
-  if(doc.containsKey("steering")) {
-    auto steering = doc["steering"];
-    if(steering.containsKey("calibration")) {
-      bool calibration = steering["calibration"].as<bool>();
-      LOG_I(calibration);
-    }
-  }
-  if(doc.containsKey("stop")) {
-    auto stop = doc["stop"];
-    if(stop.containsKey("all")) {
-      bool all = stop["all"].as<bool>();
-      LOG_I(all);
-    }
-  }
+  preferences.end();
 }
 
 class MyCallbacks: public BLECharacteristicCallbacks {
@@ -88,9 +100,54 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 #define CHARACTERISTIC_UUID_TX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_RX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
+#include <list>
+std::list<std::string> gAllowTopics;
+std::list<std::string> gDenyTopics;
+
+void loadPreferances(void) {
+  preferences.begin(preferencesZone,true);
+
+  gTempAllowJsonBody = preferences.getString(allowKey);
+  DeserializationError error = deserializeJson(gAllowList, gTempAllowJsonBody);
+  LOG_S(error);
+  LOG_S(gTempAllowJsonBody);
+  if(error == DeserializationError::Ok) {
+    if(gAllowList.containsKey("allows")) {
+      auto allows = gAllowList["allows"].as<JsonArray>();
+      for(auto allow:allows) {
+        if(allow.containsKey("pubKey")) {
+          auto allowKey = allow["pubKey"].as<std::string>();
+          LOG_S(allowKey);
+          gAllowTopics.push_back(allowKey);
+        }
+      }
+    }
+  }
+
+  gTempDenyJsonBody = preferences.getString(denyKey);
+  DeserializationError errorDeny = deserializeJson(gDenyList, gTempDenyJsonBody);
+  LOG_S(errorDeny);
+  LOG_S(gTempDenyJsonBody);
+  if(errorDeny == DeserializationError::Ok) {
+    if(gDenyList.containsKey("denys")) {
+      auto denys = gDenyList["denys"].as<JsonArray>();
+      for(auto deny:denys) {
+        if(deny.containsKey("pubKey")) {
+          auto denyKey = deny["pubKey"].as<std::string>();
+          LOG_S(denyKey);
+          gDenyTopics.push_back(denyKey);
+        }
+      }
+    }
+  }
+
+  preferences.end();
+}
+
 
 void setupBLE(void) {
-  BLEDevice::init("ESP32 NiuMa");  // local name
+  loadPreferances();
+  BLEDevice::init("PublicIot");  // local name
   pServer = BLEDevice::createServer();  // Create the BLE Device
   pServer->setCallbacks(new MyServerCallbacks());
   BLEService *pService = pServer->createService(SERVICE_UUID);

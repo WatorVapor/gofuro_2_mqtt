@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <map>
 #include <PubSubClient.h>
+#include <Preferences.h>
 
 /*
 #include <Ed25519.h>
@@ -194,6 +195,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 
+
+
 void setupMQTT(void) {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -203,6 +206,7 @@ void setupMQTT(void) {
     if(result == WL_CONNECTED){
       break;
     }
+    delay(1000);
   }
   LOG_S(WiFi.localIP().toString());
   LOG_S(WiFi.localIPv6().toString());
@@ -212,23 +216,39 @@ void setupMQTT(void) {
 }
 
 
-static const char *defaultTopics = "u51h7JJd6054erGLKjVvOqa6hhfzC/xWbLYhPZN3S0M=";
+//static const char *defaultTopics = "u51h7JJd6054erGLKjVvOqa6hhfzC/xWbLYhPZN3S0M=";
+
+#include <list>
+extern std::list<std::string> gAllowTopics;
+extern std::list<std::string> gDenyTopics;
+
+void subscribeAtConnected(void) {
+  for(const auto topic :gAllowTopics) {
+    for(const auto deny :gDenyTopics) {
+      if(topic == deny) {
+        continue;
+      }
+    }
+    client.subscribe(topic.c_str(),1);
+    // Once connected, publish an announcement...
+    delay(1000);
+    client.publish(topic.c_str(), "hello world");
+  }
+}
 
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "ESP8266Client-";
+    String clientId = "public-iot";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     auto rc = client.connect(clientId.c_str());
     if (rc) {
       LOG_I(client.connected());
       // ... and resubscribe
-      client.subscribe(defaultTopics,1);
-      // Once connected, publish an announcement...
-      client.publish(defaultTopics, "hello world");
+      subscribeAtConnected();
     } else {
       LOG_I(client.state());
       Serial.println(" try again in 5 seconds");

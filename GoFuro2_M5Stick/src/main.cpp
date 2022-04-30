@@ -16,7 +16,11 @@ void setup() {
 
 
 bool restart = false;
+bool isPreferenceAllow = false;
 void loop() {
+  if(M5.BtnA.wasPressed()){
+    isPreferenceAllow = true;
+  }
   if(M5.BtnB.wasPressed()){
     LOG_I(M5.BtnB.wasPressed());
     restart = true;
