@@ -1,72 +1,38 @@
-const constPublicIotServiceUUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const constPublicIotRxUUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
-const constPublicIotTxUUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
-const constPublicIotBleFilter = {
-  filters:[
-    {namePrefix: 'PublicIot'}
-  ],
-  optionalServices:[
-    constPublicIotServiceUUID
-  ]
-};
-
-const BLE = {
-  tx:false,
-  rx:false,
-};
-const uiClickSearchBleDevice = async (elem) => {
-  const device = await navigator.bluetooth.requestDevice(constPublicIotBleFilter);
-  console.log('::uiClickSearchBleDevice::device=<',device,'>');
-  const server = await device.gatt.connect();
-  console.log('::uiClickSearchBleDevice::server=<',server,'>');
-  const service = await server.getPrimaryService(constPublicIotServiceUUID);
-  console.log('::uiClickSearchBleDevice::service=<',service,'>');
-  const rxCh = await service.getCharacteristic(constPublicIotRxUUID);
-  console.log('::uiClickSearchBleDevice::rxCh=<',rxCh,'>');
-  
-  rxCh.startNotifications().then(char => {
-    rxCh.addEventListener('characteristicvaluechanged', (event) => {
-      //console.log('::uiClickSearchBleDevice::event=<',event,'>');
-      onBleData(rxCh,event.target.value)
-    });
-  })
-  const txCh = await service.getCharacteristic(constPublicIotTxUUID);
-  console.log('::uiClickSearchBleDevice::txCh=<',txCh,'>');
-  BLE.tx = txCh;
-}
-
-const onBleData = (characteristic,value) => {
-  //console.log('::onBleData::characteristic=<',characteristic,'>');
-  //console.log('::onBleData::value=<',value,'>');
-  const decoder = new TextDecoder('utf-8');
-  const strData = decoder.decode(value).trim();
-  //console.log('::onBleData::strData=<',strData,'>');
-  const jData = JSON.parse(strData);
-  console.log('::onBleData::jData=<',jData,'>');
-}
-
-const writeJsonCmd = (jCmd) => {
-  const strCmd = JSON.stringify(jCmd);
-  //console.log('::writeJsonCmd::strCmd=<',strCmd,'>');
-  const bufCmd = new TextEncoder('utf-8').encode(strCmd);
-  //console.log('::writeJsonCmd::bufCmd=<',bufCmd,'>');
-  if(BLE.tx) {
-    //console.log('::writeJsonCmd::BLE.tx=<',BLE.tx,'>');
-    BLE.tx.writeValue(bufCmd);
-  }  
-}
-
 document.addEventListener('DOMContentLoaded',()=>{
-  createVueApp();
+  setTimeout(() => {
+    createBleApp();
+  },100);
 })
+const gPairBleApp = {
+};
 
-const createVueApp = () => {
-  const appDeviceSetting = Vue.createApp({
+const createBleApp = () => {
+  const app = Vue.createApp({
     data() {
       return {
-        speed:128,
-        angle:0
+        pubKey:getPubKey(),
+        name:'',
+        allows:[
+          {
+            pubKey:'***',
+            name:'---'
+          }
+        ]
+      }
+    },
+    methods: {
+      allowDevicePermission(evt) {
+        //console.log('allowDevicePermission::evt:=<', evt, '>');
+        //console.log('allowDevicePermission::this.pubKey:=<', this.pubKey, '>');
+        //console.log('allowDevicePermission::this.name:=<', this.name, '>');
+        allowDevicePubKeyByBle(this.pubKey,this.name);
+      },
+      denyDevicePermission(pubKey) {
+        console.log('denyDevicePermission::pubKey:=<', pubKey, '>');
+        denyDevicePubKeyByBle(pubKey);
       }
     }
   });
+  gPairBleApp.vm = app.mount('#vue-ui-ble-pairing');
+  console.log('createBleApp::gPairBleApp:=<', gPairBleApp, '>');
 };
