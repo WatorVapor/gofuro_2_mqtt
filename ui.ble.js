@@ -14,7 +14,7 @@ const createBleApp = () => {
         name:'',
         allows:[
           {
-            pubKey:'***',
+            pubKey:'~~~',
             name:'---'
           }
         ]
